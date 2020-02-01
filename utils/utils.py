@@ -145,11 +145,12 @@ def compute_ap(recall, precision):
     return ap
 
 
-def get_batch_statistics(outputs, targets, iou_threshold):
+def get_batch_statistics(outputs, targets, iou_threshold, image_paths):
     """ Compute true positives, predicted scores and predicted labels per sample """
     batch_metrics = []
+    miss_classified_images = []
     for sample_i in range(len(outputs)):
-
+        path = image_paths[sample_i]
         if outputs[sample_i] is None:
             continue
 
@@ -180,8 +181,10 @@ def get_batch_statistics(outputs, targets, iou_threshold):
                 if iou >= iou_threshold and box_index not in detected_boxes:
                     true_positives[pred_i] = 1
                     detected_boxes += [box_index]
+                else:
+                    miss_classified_images.append(path)
         batch_metrics.append([true_positives, pred_scores, pred_labels])
-    return batch_metrics
+    return batch_metrics, miss_classified_images
 
 
 def bbox_wh_iou(wh1, wh2):

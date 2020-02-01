@@ -3,7 +3,6 @@ from __future__ import division
 from models import *
 from utils.utils import *
 from utils.datasets import *
-from utils.sendNotification import *
 
 import os
 import sys
@@ -21,7 +20,6 @@ from torch.autograd import Variable
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.ticker import NullLocator
-plt.switch_backend('agg')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -44,9 +42,7 @@ if __name__ == "__main__":
     folder_name = opt.weights_path.rsplit("/",1)[-1][:-4]
     os.makedirs(f"output/{folder_name}", exist_ok=True)
 
-    #inititalizing firebase
-    #print("Initializing firebase...")
-    #firebase, db = initFirebase()
+
     
     # Set up model
     model = Darknet(opt.model_def, img_size=opt.img_size).to(device)
@@ -146,8 +142,7 @@ if __name__ == "__main__":
             for c in detected_classes:
                 string_builder + " {}".format(c)
     
-            # Sending notification now
-            #notify(string_builder, firebase, db)
+        
         # Save generated image with detections
         plt.axis("off")
         plt.gca().xaxis.set_major_locator(NullLocator())

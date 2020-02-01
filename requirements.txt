@@ -1,9 +1,7 @@
 numpy
-torch>=1.0
+torch==1.4
 torchvision
 matplotlib
-tensorflow
-tensorboard
-terminaltables
 pillow
+terminaltables
 tqdm

@@ -3,6 +3,7 @@ from __future__ import division
 from models import *
 from utils.utils import *
 from utils.datasets import *
+from utils.sendNotification import *
 
 import os
 import sys
@@ -20,13 +21,14 @@ from torch.autograd import Variable
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.ticker import NullLocator
+plt.switch_backend('agg')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--image_folder", type=str, default="data/samples", help="path to dataset")
-    parser.add_argument("--model_def", type=str, default="config/yolov3.cfg", help="path to model definition file")
-    parser.add_argument("--weights_path", type=str, default="weights/yolov3.weights", help="path to weights file")
-    parser.add_argument("--class_path", type=str, default="data/coco.names", help="path to class label file")
+    parser.add_argument("--image_folder", type=str, default="data/custom_data/test_img", help="path to dataset")
+    parser.add_argument("--model_def", type=str, default="config/yolov3-tiny.cfg", help="path to model definition file")
+    parser.add_argument("--weights_path", type=str, default="previous_results/checkpoint/yolov3-tiny_32.pth", help="path to weights file")
+    parser.add_argument("--class_path", type=str, default="config/coco.names", help="path to class label file")
     parser.add_argument("--conf_thres", type=float, default=0.8, help="object confidence threshold")
     parser.add_argument("--nms_thres", type=float, default=0.4, help="iou thresshold for non-maximum suppression")
     parser.add_argument("--batch_size", type=int, default=1, help="size of the batches")
@@ -39,7 +41,13 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     os.makedirs("output", exist_ok=True)
+    folder_name = opt.weights_path.rsplit("/",1)[-1][:-4]
+    os.makedirs(f"output/{folder_name}", exist_ok=True)
 
+    #inititalizing firebase
+    #print("Initializing firebase...")
+    #firebase, db = initFirebase()
+    
     # Set up model
     model = Darknet(opt.model_def, img_size=opt.img_size).to(device)
 
@@ -90,8 +98,10 @@ if __name__ == "__main__":
     # Bounding-box colors
     cmap = plt.get_cmap("tab20b")
     colors = [cmap(i) for i in np.linspace(0, 1, 20)]
+    
 
     print("\nSaving images:")
+
     # Iterate through images and save plot of detections
     for img_i, (path, detections) in enumerate(zip(imgs, img_detections)):
 
@@ -110,8 +120,9 @@ if __name__ == "__main__":
             unique_labels = detections[:, -1].cpu().unique()
             n_cls_preds = len(unique_labels)
             bbox_colors = random.sample(colors, n_cls_preds)
+            detected_classes = []
             for x1, y1, x2, y2, conf, cls_conf, cls_pred in detections:
-
+                detected_classes.append(classes[int(cls_pred)])
                 print("\t+ Label: %s, Conf: %.5f" % (classes[int(cls_pred)], cls_conf.item()))
 
                 box_w = x2 - x1
@@ -131,11 +142,16 @@ if __name__ == "__main__":
                     verticalalignment="top",
                     bbox={"color": color, "pad": 0},
                 )
-
+            string_builder = ''
+            for c in detected_classes:
+                string_builder + " {}".format(c)
+    
+            # Sending notification now
+            #notify(string_builder, firebase, db)
         # Save generated image with detections
         plt.axis("off")
         plt.gca().xaxis.set_major_locator(NullLocator())
         plt.gca().yaxis.set_major_locator(NullLocator())
         filename = path.split("/")[-1].split(".")[0]
-        plt.savefig(f"output/{filename}.png", bbox_inches="tight", pad_inches=0.0)
+        plt.savefig(f"output/{folder_name}/{filename}.png", bbox_inches="tight", pad_inches=0.0)
         plt.close()

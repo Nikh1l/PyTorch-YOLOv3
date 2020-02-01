@@ -80,10 +80,12 @@ def ap_per_class(tp, conf, pred_cls, target_cls):
 
     # Create Precision-Recall curve and compute AP for each class
     ap, p, r = [], [], []
+    confusion_log = ""
     for c in tqdm.tqdm(unique_classes, desc="Computing AP"):
         i = pred_cls == c
         n_gt = (target_cls == c).sum()  # Number of ground truth objects
         n_p = i.sum()  # Number of predicted objects
+        lab = "cell phone" if c==0.0 else "laptop"
 
         if n_p == 0 and n_gt == 0:
             continue
@@ -95,7 +97,8 @@ def ap_per_class(tp, conf, pred_cls, target_cls):
             # Accumulate FPs and TPs
             fpc = (1 - tp[i]).cumsum()
             tpc = (tp[i]).cumsum()
-
+            confusion_log += "True Positives: Class id - {} , total true positives - {} , Number of ground truth objects: {} , Number of predicted objects: {} \n".format(lab, tpc[-1], n_gt, n_p)
+            confusion_log += "False Positives: Class id - {} , total false positives - {} , Number of ground truth objects: {} , Number of predicted objects: {} \n".format(lab, fpc[-1], n_gt, n_p)
             # Recall
             recall_curve = tpc / (n_gt + 1e-16)
             r.append(recall_curve[-1])
@@ -111,7 +114,7 @@ def ap_per_class(tp, conf, pred_cls, target_cls):
     p, r, ap = np.array(p), np.array(r), np.array(ap)
     f1 = 2 * p * r / (p + r + 1e-16)
 
-    return p, r, ap, f1, unique_classes.astype("int32")
+    return p, r, ap, f1, unique_classes.astype("int32"), confusion_log
 
 
 def compute_ap(recall, precision):
